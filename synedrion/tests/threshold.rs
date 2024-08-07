@@ -318,6 +318,46 @@ async fn full_sequence() {
         .unwrap();
     assert_eq!(child_vkey, child_vkey_after_resharing);
 
+    // Do a second reshare with only t parties
+    let new_holder = NewHolder {
+        verifying_key: t_key_shares[0].verifying_key(),
+        old_threshold: t,
+        old_holders: BTreeSet::from_iter(verifiers.iter().cloned().take(t)),
+    };
+    let sessions = (0..t)
+        .map(|idx| {
+            let inputs = KeyResharingInputs {
+                old_holder: Some(OldHolder {
+                    key_share: new_t_key_shares[idx].clone(),
+                }),
+                new_holder: Some(new_holder.clone()),
+                new_holders: BTreeSet::from_iter(verifiers.iter().cloned().take(t)),
+                new_threshold: t,
+            };
+            make_key_resharing_session::<TestParams, Signature, SigningKey, VerifyingKey>(
+                &mut OsRng,
+                session_id,
+                signers[idx].clone(),
+                &all_verifiers,
+                inputs,
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>();
+
+    println!("\nRunning Second KeyReshare\n");
+    let new_new_t_key_shares = run_nodes(sessions).await;
+
+    let new_new_t_key_shares = new_new_t_key_shares
+        .into_iter()
+        .map(|key_share| key_share.unwrap())
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        new_new_t_key_shares[0].verifying_key(),
+        t_key_shares[0].verifying_key()
+    );
+
     // Generate auxiliary data
 
     let sessions = (0..n)
@@ -339,10 +379,14 @@ async fn full_sequence() {
     // - derive child key shares
     // - convert their threshold key shares into regular key shares.
 
-    let selected_signers = vec![signers[0].clone(), signers[2].clone(), signers[4].clone()];
-    let selected_parties = BTreeSet::from([verifiers[0], verifiers[2], verifiers[4]]);
+    let selected_signers = vec![signers[0].clone(), signers[1].clone(), signers[2].clone()];
+    let selected_parties = BTreeSet::from([verifiers[0], verifiers[1], verifiers[2]]);
     let selected_key_shares = vec![
         new_t_key_shares[0]
+            .derive_bip32(&path)
+            .unwrap()
+            .to_key_share(&selected_parties),
+        new_t_key_shares[1]
             .derive_bip32(&path)
             .unwrap()
             .to_key_share(&selected_parties),
@@ -350,15 +394,11 @@ async fn full_sequence() {
             .derive_bip32(&path)
             .unwrap()
             .to_key_share(&selected_parties),
-        new_t_key_shares[4]
-            .derive_bip32(&path)
-            .unwrap()
-            .to_key_share(&selected_parties),
     ];
     let selected_aux_infos = vec![
         aux_infos[0].clone(),
+        aux_infos[1].clone(),
         aux_infos[2].clone(),
-        aux_infos[4].clone(),
     ];
 
     // Perform signing with the key shares
