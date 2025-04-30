@@ -677,9 +677,8 @@ checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
 name = "manul"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce6bd3e34734b404f6e95cd32c3a65a3de506e6717494e07ff5bda905490046f"
+version = "0.2.1-dev"
+source = "git+https://github.com/entropyxyz/manul.git?rev=f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0#f2e444bf4ffed93c3408c0c4fa7a47bc83b844d0"
 dependencies = [
  "derive-where",
  "digest",
